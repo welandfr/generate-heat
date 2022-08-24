@@ -9,7 +9,8 @@ load_dotenv()
 userlist = os.environ.get("USERLIST") 
 default_maildomain = os.environ.get("DEFAULT_MAILDOMAIN")
 main_ssh_keypair = os.environ.get("SSH_KEYPAIR") 
-mailer_key = os.environ.get("MAILER_KEY")
+mailer_url = os.environ.get("MAILER_URL")
+gateway_ip = os.environ.get("GATEWAY_ADDR")
 
 current_date = datetime.now().isoformat('_').split('.')[0]
 users = [u.strip() for u in userlist.split(',')]
@@ -32,18 +33,17 @@ for user in users:
         "PORT=22$(hostname -I | tail -c 4)", # Get login port for gateway (22 + last two digits of local IP)
         f'useradd -m -s /bin/bash -G sudo {user}', # Create a user with shell, home and sudo
         f'echo "{user}:$PASS" | chpasswd', # Set password
-        f'passwd --expire {user}' # User must change password on first login
+        #f'passwd --expire {user}', # User must change password on first login
         "sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config", # Allow password login
         "service sshd restart", # Restart SSH server
         f"""MAIL='{{\
             "to": "{user_mail}", \
             "subject": "Your server is ready!", \
-            "body": "Gateway IP: provided separately (security through obscurity, you know...)<br>\
+            "body": "Gateway IP: {gateway_ip}<br>\
                 SSH Port: '${{PORT}}' <br>\
                 login: {user} <br>\
                 password: '${{PASS}}'<br>"}}'""", # Create mail 
-        f"""curl -X POST -H "Content-Type: application/json" -d "$MAIL" \
-            https://rahti-mailer-fw-teaching.rahtiapp.fi/?api_key={mailer_key}""", # Send mail using external API
+        f'curl -X POST -H "Content-Type: application/json" -d "$MAIL" {mailer_url}', # Send mail using external API
         '' # <== don't remove this or the LiteralScalarString magic won't work
     ]
 
@@ -56,7 +56,6 @@ for user in users:
                         # Creates the pipe string block:
             'user_data': LiteralScalarString('\n'.join(user_data)).replace("  ", "")
         }
-        
     }
 
 # Save new heat template

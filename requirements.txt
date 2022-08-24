@@ -1,2 +1,4 @@
 python-dotenv==0.20.0
 ruamel.base==1.0.0
+ruamel.yaml==0.17.21
+ruamel.yaml.clib==0.2.6
