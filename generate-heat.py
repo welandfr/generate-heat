@@ -1,4 +1,4 @@
-import os, shutil
+import os, shutil, subprocess
 from datetime import datetime
 from ruamel.yaml import YAML
 from ruamel.yaml.scalarstring import PreservedScalarString, LiteralScalarString
@@ -20,7 +20,15 @@ heat = {
     'resources': {}
 }
 
+def wg_genkey():
+    privkey = subprocess.check_output("wg genkey", shell=True).decode("utf-8").strip()
+    pubkey = subprocess.check_output(f"echo '{privkey}' | wg pubkey", shell=True).decode("utf-8").strip()
+    return (privkey, pubkey)
+
 for user in users:
+
+    server_keys = wg_genkey();
+    client_keys = wg_genkey();
 
     user_mail = f'{user}@{default_maildomain}'
     if '@' in user:
@@ -29,20 +37,30 @@ for user in users:
     # Generate the script that will run on each instance after creation
     user_data = [
         "#!/bin/bash",
-        "PASS=$(openssl rand -hex 6)", # Create a password
-        "PORT=22$(hostname -I | tail -c 4)", # Get login port for gateway (22 + last two digits of local IP)
-        f'useradd -m -s /bin/bash -G sudo {user}', # Create a user with shell, home and sudo
-        f'echo "{user}:$PASS" | chpasswd', # Set password
-        #f'passwd --expire {user}', # User must change password on first login
-        "sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config", # Allow password login
-        "service sshd restart", # Restart SSH server
+        "OCTET=$(hostname -I | tail -c 4 | xargs)", # Get last octet of IP
+        "sed -i \"s/<xx>/$OCTET/g\" /etc/wireguard/wg0.conf",
+        f"sed -i \"s'<pri>'{server_keys[0]}'g\" /etc/wireguard/wg0.conf", # ' as delimiter because / can exist in string
+        f"sed -i \"s'<pub>'{client_keys[1]}'g\" /etc/wireguard/wg0.conf",
+        "wg-quick down wg0; wg-quick up wg0", # Restart wireguard
+        
         f"""MAIL='{{\
             "to": "{user_mail}", \
             "subject": "Your server is ready!", \
-            "body": "Gateway IP: {gateway_ip}<br>\
-                SSH Port: '${{PORT}}' <br>\
-                login: {user} <br>\
-                password: '${{PASS}}'<br>"}}'""", # Create mail 
+            "body": "Server IP (WireGuard): 192.168.'${{OCTET}}'.10<br>\
+                # Generated WireGuard config /etc/wireguard/wg0.conf<br>\
+                <br>\
+                [Interface]<br>\
+                Address = 192.168.'${{OCTET}}'.20<br>\
+                PrivateKey = {client_keys[0]}<br>\
+                DNS = 1.1.1.1<br>\
+                
+                <br>\
+                [Peer]<br>\
+                PublicKey = {server_keys[1]}<br>\
+                AllowedIPs = 0.0.0.0/0<br>\
+                Endpoint = {gateway_ip}:519'${{OCTET}}'<br>\
+                PersistentKeepalive = 25"}}'""", # Create mail 
+                
         f'curl -X POST -H "Content-Type: application/json" -d "$MAIL" {mailer_url}', # Send mail using external API
         '' # <== don't remove this or the LiteralScalarString magic won't work
     ]
@@ -51,7 +69,7 @@ for user in users:
         'type': "OS::Nova::Server",
         'properties': {
             'key_name': main_ssh_keypair,
-            'image': "Ubuntu-20.04",
+            'image': "vuln-template",
             'flavor': "standard.tiny",
                         # Creates the pipe string block:
             'user_data': LiteralScalarString('\n'.join(user_data)).replace("  ", "")
