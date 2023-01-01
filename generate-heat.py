@@ -47,19 +47,18 @@ for user in users:
             "to": "{user_mail}", \
             "subject": "Your server is ready!", \
             "body": "Server IP (WireGuard): 192.168.'${{OCTET}}'.10<br>\
-                # Generated WireGuard config /etc/wireguard/wg0.conf<br>\
+                WireGuard config for /etc/wireguard/wg0.conf<br>\
                 <br>\
-                [Interface]<br>\
+                <pre>[Interface]<br>\
                 Address = 192.168.'${{OCTET}}'.20<br>\
                 PrivateKey = {client_keys[0]}<br>\
                 DNS = 1.1.1.1<br>\
-                
                 <br>\
                 [Peer]<br>\
                 PublicKey = {server_keys[1]}<br>\
                 AllowedIPs = 0.0.0.0/0<br>\
                 Endpoint = {gateway_ip}:519'${{OCTET}}'<br>\
-                PersistentKeepalive = 25"}}'""", # Create mail 
+                PersistentKeepalive = 25</pre>"}}'""", # Create mail 
                 
         f'curl -X POST -H "Content-Type: application/json" -d "$MAIL" {mailer_url}', # Send mail using external API
         '' # <== don't remove this or the LiteralScalarString magic won't work
@@ -69,7 +68,7 @@ for user in users:
         'type': "OS::Nova::Server",
         'properties': {
             'key_name': main_ssh_keypair,
-            'image': "vuln-template",
+            'image': "vuln-snapshot",
             'flavor': "standard.tiny",
                         # Creates the pipe string block:
             'user_data': LiteralScalarString('\n'.join(user_data)).replace("  ", "")
