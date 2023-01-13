@@ -11,6 +11,7 @@ default_maildomain = os.environ.get("DEFAULT_MAILDOMAIN")
 main_ssh_keypair = os.environ.get("SSH_KEYPAIR") 
 mailer_url = os.environ.get("MAILER_URL")
 gateway_ip = os.environ.get("GATEWAY_ADDR")
+wg_range = os.environ.get("WG_RANGE")
 
 current_date = datetime.now().isoformat('_').split('.')[0]
 users = [u.strip() for u in userlist.split(',')]
@@ -37,20 +38,21 @@ for user in users:
     # Generate the script that will run on each instance after creation
     user_data = [
         "#!/bin/bash",
-        "OCTET=$(hostname -I | tail -c 4 | xargs)", # Get last octet of IP
+        "OCTET=$(hostname -I | cut -c 11-12)", # Get last two numbers of IP
         "sed -i \"s/<xx>/$OCTET/g\" /etc/wireguard/wg0.conf",
         f"sed -i \"s'<pri>'{server_keys[0]}'g\" /etc/wireguard/wg0.conf", # ' as delimiter because / can exist in string
         f"sed -i \"s'<pub>'{client_keys[1]}'g\" /etc/wireguard/wg0.conf",
         "wg-quick down wg0; wg-quick up wg0", # Restart wireguard
+        "/opt/genflags.sh; rm /opt/genflags.sh", # Generate flags for CTF (script in server template)
         
         f"""MAIL='{{\
             "to": "{user_mail}", \
             "subject": "Your server is ready!", \
-            "body": "Server IP (WireGuard): 192.168.'${{OCTET}}'.10<br>\
+            "body": "Server IP (WireGuard): {wg_range}.'${{OCTET}}'.10<br>\
                 WireGuard config for /etc/wireguard/wg0.conf<br>\
                 <br>\
                 <pre>[Interface]<br>\
-                Address = 192.168.'${{OCTET}}'.20<br>\
+                Address = {wg_range}.'${{OCTET}}'.20<br>\
                 PrivateKey = {client_keys[0]}<br>\
                 DNS = 1.1.1.1<br>\
                 <br>\
@@ -61,6 +63,7 @@ for user in users:
                 PersistentKeepalive = 25</pre>"}}'""", # Create mail 
                 
         f'curl -X POST -H "Content-Type: application/json" -d "$MAIL" {mailer_url}', # Send mail using external API
+        'userdel -rf ubuntu', # delete default user
         '' # <== don't remove this or the LiteralScalarString magic won't work
     ]
 
