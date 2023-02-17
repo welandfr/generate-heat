@@ -29,7 +29,8 @@ def wg_genkey():
 for user in users:
 
     server_keys = wg_genkey();
-    client_keys = wg_genkey();
+    client1_keys = wg_genkey();
+    client2_keys = wg_genkey();
 
     user_mail = f'{user}@{default_maildomain}'
     if '@' in user:
@@ -41,19 +42,33 @@ for user in users:
         "OCTET=$(hostname -I | cut -c 11-12)", # Get last two numbers of IP
         "sed -i \"s/<xx>/$OCTET/g\" /etc/wireguard/wg0.conf",
         f"sed -i \"s'<pri>'{server_keys[0]}'g\" /etc/wireguard/wg0.conf", # ' as delimiter because / can exist in string
-        f"sed -i \"s'<pub>'{client_keys[1]}'g\" /etc/wireguard/wg0.conf",
+        f"sed -i \"s'<pub1>'{client1_keys[1]}'g\" /etc/wireguard/wg0.conf",
+        f"sed -i \"s'<pub2>'{client2_keys[1]}'g\" /etc/wireguard/wg0.conf",
         "wg-quick down wg0; wg-quick up wg0", # Restart wireguard
         "/opt/genflags.sh; rm /opt/genflags.sh", # Generate flags for CTF (script in server template)
         
         f"""MAIL='{{\
             "to": "{user_mail}", \
             "subject": "Your server is ready!", \
-            "body": "Server IP (WireGuard): {wg_range}.'${{OCTET}}'.10<br>\
-                WireGuard config for /etc/wireguard/wg0.conf<br>\
-                <br>\
+            "body": "Server IP (WireGuard): {wg_range}.'${{OCTET}}'.10<br><br>\
+                Client 1 - {wg_range}.'${{OCTET}}'.20<br>\
+                Save the following to /etc/wireguard/wg0.conf:<br>\
                 <pre>[Interface]<br>\
                 Address = {wg_range}.'${{OCTET}}'.20<br>\
-                PrivateKey = {client_keys[0]}<br>\
+                PrivateKey = {client1_keys[0]}<br>\
+                DNS = 1.1.1.1<br>\
+                <br>\
+                [Peer]<br>\
+                PublicKey = {server_keys[1]}<br>\
+                AllowedIPs = 0.0.0.0/0<br>\
+                Endpoint = {gateway_ip}:519'${{OCTET}}'<br>\
+                PersistentKeepalive = 25</pre>\
+                <br>\
+                Client 2 - {wg_range}.'${{OCTET}}'.21<br>\
+                Save the following to /etc/wireguard/wg0.conf:<br>\
+                <pre>[Interface]<br>\
+                Address = {wg_range}.'${{OCTET}}'.21<br>\
+                PrivateKey = {client2_keys[0]}<br>\
                 DNS = 1.1.1.1<br>\
                 <br>\
                 [Peer]<br>\
