@@ -12,6 +12,7 @@ main_ssh_keypair = os.environ.get("SSH_KEYPAIR")
 mailer_url = os.environ.get("MAILER_URL")
 gateway_ip = os.environ.get("GATEWAY_ADDR")
 wg_range = os.environ.get("WG_RANGE")
+mail_subject = os.environ.get("MAIL_SUBJECT", "Your server is ready!")
 
 current_date = datetime.now().isoformat('_').split('.')[0]
 users = [u.strip() for u in userlist.split(',')]
@@ -49,7 +50,7 @@ for user in users:
         
         f"""MAIL='{{\
             "to": "{user_mail}", \
-            "subject": "Your server is ready!", \
+            "subject": "{mail_subject}", \
             "body": "Server IP (WireGuard): {wg_range}.'${{OCTET}}'.10<br><br>\
                 Client 1 - {wg_range}.'${{OCTET}}'.20<br>\
                 Save the following to /etc/wireguard/wg0.conf:<br>\
