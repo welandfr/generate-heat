@@ -51,7 +51,7 @@ for user in users:
         'type': "OS::Nova::Server",
         'properties': {
             'key_name': main_ssh_keypair,
-            'image': "Ubuntu-20.04",
+            'image': "Ubuntu-22.04",
             'flavor': "standard.tiny",
                         # Creates the pipe string block:
             'user_data': LiteralScalarString('\n'.join(user_data)).replace("  ", "")
