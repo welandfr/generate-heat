@@ -1,4 +1,6 @@
 .env
+**/*.bak
+**/*.BAK
 **/*.yaml
 **/*.http
 **/*.rest
