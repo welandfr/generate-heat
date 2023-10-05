@@ -12,7 +12,7 @@ main_ssh_keypair = os.environ.get("SSH_KEYPAIR")
 mailer_url = os.environ.get("MAILER_URL")
 gateway_ip = os.environ.get("GATEWAY_ADDR")
 mail_subject = os.environ.get("MAIL_SUBJECT", "Your server is ready!")
-project_number = os.environ.get("PROJECT")
+nic = os.environ.get("NIC")
 
 current_date = datetime.now().isoformat('_').split('.')[0]
 users = [u.strip() for u in userlist.split(',')]
@@ -52,7 +52,7 @@ for user in users:
     heat["resources"][user] = {
         'type': "OS::Nova::Server",
         'properties': {
-            'networks': [{ 'network': f'project_{project_number}'}],
+            'networks': [{ 'network': nic }],
             'key_name': main_ssh_keypair,
             'image': "Ubuntu-22.04",
             'flavor': "standard.tiny",
