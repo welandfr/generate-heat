@@ -13,6 +13,7 @@ mailer_url = os.environ.get("MAILER_URL")
 gateway_ip = os.environ.get("GATEWAY_ADDR")
 wg_range = os.environ.get("WG_RANGE")
 mail_subject = os.environ.get("MAIL_SUBJECT", "Your server is ready!")
+nic = os.environ.get("NIC")
 
 current_date = datetime.now().isoformat('_').split('.')[0]
 users = [u.strip() for u in userlist.split(',')]
@@ -61,7 +62,7 @@ for user in users:
                 <br>\
                 [Peer]<br>\
                 PublicKey = {server_keys[1]}<br>\
-                AllowedIPs = 0.0.0.0/0<br>\
+                AllowedIPs = {wg_range}.'${{OCTET}}'.0/24<br>\
                 Endpoint = {gateway_ip}:519'${{OCTET}}'<br>\
                 PersistentKeepalive = 25</pre>\
                 <br>\
@@ -74,7 +75,7 @@ for user in users:
                 <br>\
                 [Peer]<br>\
                 PublicKey = {server_keys[1]}<br>\
-                AllowedIPs = 0.0.0.0/0<br>\
+                AllowedIPs = {wg_range}.'${{OCTET}}'.0/24<br>\
                 Endpoint = {gateway_ip}:519'${{OCTET}}'<br>\
                 PersistentKeepalive = 25</pre>"}}'""", # Create mail 
                 
@@ -86,6 +87,7 @@ for user in users:
     heat["resources"][user] = {
         'type': "OS::Nova::Server",
         'properties': {
+            'networks': [{ 'network': nic }],
             'key_name': main_ssh_keypair,
             'image': "vuln-snapshot",
             'flavor': "standard.tiny",
