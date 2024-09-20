@@ -36,8 +36,10 @@ for user in users:
         f'useradd -m -s /bin/bash -G sudo {user}', # Create a user with shell, home and sudo
         f'echo "{user}:$PASS" | chpasswd', # Set password
         #f'passwd --expire {user}', # User must change password on first login
-        "sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config", # Allow password login
-        "service sshd restart", # Restart SSH server
+        "sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config", # Allow password login (no to yes)
+        "sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/g' /etc/ssh/sshd_config", # Allow password login (uncomment)
+        "rm /etc/ssh/sshd_config.d/60-cloudimg-settings.conf", # Ubuntu adds PasswordAuthentication no here also
+        "service sshd restart", # Restart SSH server 
         f"""MAIL='{{\
             "to": "{user_mail}", \
             "subject": "{mail_subject}", \
