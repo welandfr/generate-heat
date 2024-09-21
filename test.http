@@ -1,0 +1,10 @@
+### Use REST-Client to test the mailer
+POST {{$dotenv MAILER_URL}}
+Content-Type: application/json
+
+{
+	
+    "to": "welandfr@arcada.fi",
+	"subject": "Your server is ready!",
+	"body": "Server IP (WireGuard): 192.168.10.10<br># Generated WireGuard config /etc/wireguard/wg0.conf<br><br>[Interface]<br>Address = 192.168.10.20<br>PrivateKey = QN+m+ajRTaQ2bgfjUV2rlX0KxaZFXomKhtQCmTRXl3k=<br>DNS = 1.1.1.1<br> <br>[Peer]<br>PublicKey = 2+/lFSO878g5Oy934s/1PN0NIhCyHdG4BQS++Dfxixg=<br>AllowedIPs = 0.0.0.0/0<br>Endpoint = 128.214.254.118:51910<br>PersistentKeepalive = 25"
+}
